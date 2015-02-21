@@ -263,5 +263,5 @@ char *byte_to_bin[] = {
 // prints the bits of a byte to the standard out
 void print_bin(char *b)
 {
-	printf("%s", byte_to_bin[*b]);
+	printf("%s", byte_to_bin[(unsigned char)*b]);
 }
