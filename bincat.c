@@ -1,42 +1,54 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
+#include <sys/errno.h>
 
-#define LNIBBLE(x) x & 0xf
-#define HNIBBLE(x) x >> 4
+#include "bincat.h"
+
+void print_file(char *filename)
+{
+	int rv, c, fd;
+	char b;
+
+	fd = open(filename, O_RDONLY);
+
+	while (1) {
+		rv = read(fd, &b, 1);
+
+		if (rv <= 0) {
+			printf("\n");
+			close(fd);
+			return;
+		}
+
+		print_bin(&b);
+	}
+
+	printf("\n");
+}
 
 int main(int argc, char *argv[])
 {
-	int fd;
-	int rv;
-	int r, c;
-	char b;
+	int i, errors = 0;
 
-	if (argc < 2) {
-		fprintf(stderr, "error: specify a file\n");
-		return 1;
-	}
-
-	fd = open(argv[1], O_RDONLY);
-	r = 0, c = 0;
-	while (1) {
-		printf("%d:\t", r);
-
-		for (c = 0; c < 8; c++) {
-			rv = read(fd, &b, 1);
-
-			if (rv <= 0)
-				goto done;
-
-			printf("%x%x ", HNIBBLE(b), LNIBBLE(b));
+	if (argc >= 2) {
+		for (i = 1; i < argc; i++) {
+			if (access(argv[i], R_OK) < 0) {
+				fprintf(stderr, "%s: %s\n", argv[i], strerror(errno));
+				errors = 1;
+			}
 		}
 
-		r += 8;
-		printf("\n");
-	}
+		if (errors)
+			return 1;
 
-done:
-	printf("\n");
-	close(fd);
-	return 0;
+		for (i = 1; i < argc; i++)
+			print_file(argv[i]);
+
+	} else {
+		fprintf(stderr, "error: specify one or more files\n");
+		fprintf(stderr, "usage: %s file1 [file2 ...]\n", argv[0]);
+		return 1;
+	}
 }
